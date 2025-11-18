@@ -152,7 +152,7 @@ elif page == "📚 Tutorial & Panduan":
 
     **Selamat Menggunakan Aplikasi! 🎉**
 
-    *Mulai dengan mengatur parameter di sidebar dan klik tombol "Optimalisasi Portfolio & Perhitungan VaR"*
+    *Mulai dengan memilih menu di sidebar yang terdiri dari Optimalisasi Portfolio & Analisis Risiko VaR (Proses dimulai dari Optimasi Portofolio dan dilanjutkan analisis risiko VaR)"*
     """)
 
 # Halaman 3: Optimasi Portofolio
@@ -224,13 +224,6 @@ elif page == "📊 Optimasi Portofolio":
         
         # Calculate button
         calculate_button = st.button("Optimalisasi Portfolio", type="primary")
-        
-        # Tombol untuk lanjut ke analisis risiko
-        if 'portfolio_data' in st.session_state:
-            st.markdown("---")
-            if st.button("Lanjutkan ke Analisis Risiko VaR ➡️"):
-                st.session_state['show_risk_analysis'] = True
-                st.experimental_rerun()
 
     # Main content area untuk optimasi portofolio
     if not selected_stocks:
@@ -780,7 +773,7 @@ elif page == "📊 Optimasi Portofolio":
                         st.error("Tidak dapat menemukan portofolio optimal. Silakan coba parameter yang berbeda.")
                     
                 else:
-                    st.warning("No stocks meet the selection criteria. Please adjust your parameters or select different stocks.")
+                    st.warning("Tidak ada saham yang memenuhi kriteria seleksi. Silakan sesuaikan periode, annual risk free rate, jumlah investasi, atau pilih saham yang berbeda.")
                 
             except Exception as e:
                 st.error(f"An error occurred during calculation: {str(e)}")
