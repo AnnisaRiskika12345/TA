@@ -656,8 +656,7 @@ elif page == "📊 Optimasi Portofolio":
                             # Verifikasi total bobot
                             st.write(f"**Total Bobot Portfolio Efisien: {efficient_weights_df['Weight Bulat (%)'].sum()}%**")
 
-                        # OTOMATIS MENGGUNAKAN PORTFOLIO OPTIMAL UNTUK ANALISIS SELANJUTNYA
-                  
+                        # Otomatis Menggunakan Portofolio Optimal Untuk Analisis Selanjutnya 
                         selected_weights = optimal_weights
                         selected_return = optimal_return
                         selected_volatility = optimal_volatility
@@ -721,46 +720,43 @@ elif page == "📊 Optimasi Portofolio":
                         
                         # Menghitung portfolio returns harian berdasarkan bobot yang dipilih.
                         portfolio_daily_returns = (returns_filtered * selected_weights).sum(axis=1)
-                        
+
                         # Kinerja portofolio dari waktu ke waktu 
-                        st.markdown('<div class="section-header">Kinerja portofolio dari waktu ke waktu</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="section-header">Kinerja portofolio harian dari waktu ke waktu</div>', unsafe_allow_html=True)
 
-                        # Menghitung return kumulatif portofolio optimal
-                        cumulative_returns = (1 + portfolio_daily_returns).cumprod()
-
-                        # Konversi ke persentase 
-                        cumulative_returns_percent = (cumulative_returns - 1) * 100
-
-                        # Membuat DataFrame untuk return kumulatif dalam persentase dengan format string
-                        cumulative_df = pd.DataFrame({
-                            'Date': cumulative_returns.index,
-                            'Cumulative_Return_Percent': cumulative_returns_percent.values
+                        # Membuat DataFrame untuk return harian dalam persentase
+                        daily_df = pd.DataFrame({
+                            'Date': portfolio_daily_returns.index,
+                            'Daily_Return_Percent': portfolio_daily_returns.values * 100
                         })
 
                         # Format kolom persentase untuk CSV (menambahkan %)
-                        cumulative_df_download = cumulative_df.copy()
-                        cumulative_df_download['Cumulative_Return_Percent'] = cumulative_df_download['Cumulative_Return_Percent'].apply(lambda x: f'{x:.3f}%')
+                        daily_df_download = daily_df.copy()
+                        daily_df_download['Daily_Return_Percent'] = daily_df_download['Daily_Return_Percent'].apply(lambda x: f'{x:.3f}%')
 
+                        # Plotting daily return
                         fig, ax = plt.subplots(figsize=(10, 6))
-                        ax.plot(cumulative_returns_percent.index, cumulative_returns_percent.values)
+                        ax.plot(portfolio_daily_returns.index, portfolio_daily_returns.values * 100)
                         ax.set_xlabel('Date')
-                        ax.set_ylabel('Cumulative Return (%)')
-                        ax.set_title('Historical Performance of Optimal Portfolio\n')
+                        ax.set_ylabel('Daily Return (%)')
+                        ax.set_title('Historical Daily Return of Portfolio\n')
                         ax.grid(True)
                         plt.xticks(rotation=45)
+
                         st.pyplot(fig)
 
-                        # Download button untuk data return kumulatif dalam format persen
-                        st.subheader("Download Data Cumulative Returns")
-                        csv = cumulative_df_download.to_csv(index=False)
+                        # Download Daily Return CSV
+                        st.subheader("Download Data Daily Portfolio Returns")
+                        csv = daily_df_download.to_csv(index=False)
+
                         st.download_button(
-                            label="Download Cumulative Returns as CSV",
+                            label="Download Daily Returns as CSV",
                             data=csv,
-                            file_name=f"cumulative_returns_{portfolio_type.lower()}.csv",
+                            file_name=f"daily_returns_{portfolio_type.lower()}.csv",
                             mime="text/csv"
                         )
                         
-                        # Simpan data portofolio ke session state untuk digunakan di halaman risiko
+                        # Menyimpan data portofolio ke session state untuk digunakan di halaman risiko
                         st.session_state['portfolio_data'] = {
                             'selected_weights': selected_weights,
                             'selected_stocks_filtered': selected_stocks_filtered,
