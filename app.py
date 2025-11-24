@@ -387,7 +387,7 @@ elif page == "📊 Optimasi Portofolio":
                         0.00065, 0.00070, 0.00075, 0.00080, 0.00085, 0.00090, 0.00095, 0.00100,
                         0.00105, 0.00110
                     ]                    
-                    
+
                     # Fungsi untuk menghitung statistik portofolio (harian)
                     def portfolio_stats(weights):
                         # Expected return portofolio
@@ -403,22 +403,51 @@ elif page == "📊 Optimasi Portofolio":
                         sharpe_ratio = (port_return - risk_free_daily) / port_volatility if port_volatility > 0 else 0
                         
                         return port_return, port_volatility, sharpe_ratio, port_variance
-                    
-                    # Tentukan bobot portofolio optimal untuk tingkat pengembalian target 
+
+                    # Tentukan bobot portofolio optimal untuk expected return target 
                     # Tentukan fungsi tujuan (meminimalkan varians/volatilitas)
                     def portfolio_variance(weights):
                         port_return, port_volatility, sharpe_ratio , port_variance = portfolio_stats(weights)
                         return port_variance
-                    
+
+                    # Fungsi untuk membulatkan bobot menjadi total 100%
+                    def round_weights_to_100(weights_percent):
+                        """
+                        Membulatkan bobot persentase menjadi bilangan bulat dengan total 100%
+                        
+                        Args:
+                            weights_percent: Array atau list bobot dalam persentase
+                        
+                        Returns:
+                            Array bobot yang dibulatkan dengan total 100%
+                        """
+                        # Bulatkan semua bobot ke bilangan bulat menggunakan floor
+                        rounded_weights = np.floor(weights_percent)
+                        
+                        # Hitung selisih dari 100%
+                        diff = 100 - np.sum(rounded_weights)
+                        
+                        if diff > 0:
+                            # Urutkan bobot berdasarkan bagian desimal (fraksional) terbesar
+                            fractional_parts = weights_percent - rounded_weights
+                            indices_sorted = np.argsort(fractional_parts)[::-1]  # Urutkan descending
+                            
+                            # Tambahkan 1 ke bobot dengan bagian fraksional terbesar sampai diff habis
+                            for i in range(int(diff)):
+                                if i < len(indices_sorted):
+                                    rounded_weights[indices_sorted[i]] += 1
+                        
+                        return rounded_weights.astype(int)
+
                     # Batasan: bobot antara 0 dan 1 (tidak ada penjualan pendek)
                     bounds = tuple((0.0, 1.0) for _ in range(len(selected_stocks_filtered)))
-                    
+
                     # Tebakan awal (bobot sama)
                     init_guess = np.array([1.0/len(selected_stocks_filtered)] * len(selected_stocks_filtered))
-                    
-                    
+
+
                     # OTOMATIS MEMILIH TARGET RETURN DENGAN SHARPE RATIO TERTINGGI
-                    
+
                     st.markdown('<div class="section-header">Pembobotan Portofolio</div>', unsafe_allow_html=True)
 
                     # Cari target return yang memberikan Sharpe ratio tertinggi
@@ -508,7 +537,7 @@ elif page == "📊 Optimasi Portofolio":
                         # Format untuk display - semua dalam persentase
                         format_dict = {
                             'Target Return': '{:.3f}%', 
-                            'Sharpe Ratio': '{:.4f}%', 
+                            'Sharpe Ratio': '{:.3f}%', 
                             'Volatility': '{:.3f}%'
                         }
                         for stock in selected_stocks_filtered:
@@ -555,8 +584,8 @@ elif page == "📊 Optimasi Portofolio":
                                         'Target Return (%)': target_ret * 100,
                                         'Actual Return (%)': port_return * 100,
                                         'Volatility (%)': port_volatility * 100,
-                                        'Variance': port_variance,
-                                        'Sharpe Ratio': sharpe_ratio
+                                        'Variance (%)': port_variance * 100,
+                                        'Sharpe Ratio (%)': sharpe_ratio * 100
                                     })
                                     
                                     if port_volatility < min_volatility:
@@ -579,22 +608,22 @@ elif page == "📊 Optimasi Portofolio":
                         # Membuat visualisasi Efficient Frontier
                         fig, ax = plt.subplots(figsize=(10, 6))
                         scatter = ax.scatter(efficient_df['Volatility (%)'], efficient_df['Actual Return (%)'], 
-                                            c=efficient_df['Sharpe Ratio'], cmap='viridis', marker='o', s=50)
+                                            c=efficient_df['Sharpe Ratio (%)'], cmap='viridis', marker='o', s=50)
                         # Menandai portfolio optimal
                         ax.scatter(optimal_volatility * 100, optimal_return * 100, c='red', marker='*', s=200, 
-                                label=f'Portfolio Optimal (Sharpe: {optimal_sharpe:.4f})')
+                                label=f'Portfolio Optimal (Sharpe: {optimal_sharpe * 100:.3f}%)')
 
                         # Menandai portfolio efisien
                         if min_vol_weights is not None:
                             ax.scatter(efficient_volatility * 100, efficient_return * 100, c='blue', marker='s', s=150, 
-                                    label=f'Portfolio Efisien (Vol: {efficient_volatility*100:.4f}%)')
+                                    label=f'Portfolio Efisien (Vol: {efficient_volatility*100:.3f}%)')
 
                         ax.set_xlabel('Volatility (%)')
                         ax.set_ylabel('Return (%)')
                         ax.set_title('Efficient Frontier\n')
                         ax.legend()
                         ax.grid(True)
-                        plt.colorbar(scatter, label='Sharpe Ratio')
+                        plt.colorbar(scatter, label='Sharpe Ratio(%)')
                         st.pyplot(fig)
 
                         # PEMBOBOTAN PORTOFOLIO EFISIEN (STANDAR DEVIASI TERKECIL)
@@ -609,17 +638,16 @@ elif page == "📊 Optimasi Portofolio":
                             efficient_return, efficient_volatility, efficient_sharpe, efficient_variance = min_vol_stats
                             
                             # Menampilkan statistik portofolio yang efisien
-
                             st.subheader("Statistik Portfolio Efisien")
                             col1, col2, col3, col4 = st.columns(4)
                             with col1:
-                                st.markdown(f'<div class="result-box">Expected Return Harian: <span class="positive">{efficient_return*100:.4f}%</span></div>', unsafe_allow_html=True)
+                                st.markdown(f'<div class="result-box">Expected Return Harian: <span class="positive">{efficient_return*100:.3f}%</span></div>', unsafe_allow_html=True)
                             with col2:
-                                st.markdown(f'<div class="result-box">Expected Volatility Harian: <span class="negative">{efficient_volatility*100:.4f}%</span></div>', unsafe_allow_html=True)
+                                st.markdown(f'<div class="result-box">Expected Volatility Harian: <span class="negative">{efficient_volatility*100:.3f}%</span></div>', unsafe_allow_html=True)
                             with col3:
-                                st.markdown(f'<div class="result-box">Sharpe Ratio Harian: <span class="positive">{efficient_sharpe:.4f}</span></div>', unsafe_allow_html=True)
+                                st.markdown(f'<div class="result-box">Sharpe Ratio Harian: <span class="positive">{efficient_sharpe*100:.3f}%</span></div>', unsafe_allow_html=True)
                             with col4:
-                                st.markdown(f'<div class="result-box">Variance Portofolio: <span class="negative">{efficient_variance:.8f}</span></div>', unsafe_allow_html=True)
+                                st.markdown(f'<div class="result-box">Variance Portofolio: <span class="negative">{efficient_variance*100:.3f}%</span></div>', unsafe_allow_html=True)
                             
                             # Menampilkan pembobotan portofolio efisien 
                             st.markdown(f'<div class="section-header">Proporsi Bobot Saham Efisien</div>', unsafe_allow_html=True)
@@ -635,16 +663,10 @@ elif page == "📊 Optimasi Portofolio":
 
                             efficient_weights_df = pd.DataFrame(efficient_weights_data)
 
-                            # Hitung bobot bulat untuk portofolio efisien
-                            efficient_weights_df['Weight Bulat (%)'] = np.round(efficient_weights_df['Weight Asli (%)'])
-
-                            # Normalisasi bobot bulat agar totalnya 100%
-                            total_rounded_efficient = efficient_weights_df['Weight Bulat (%)'].sum()
-                            if total_rounded_efficient != 100:
-                                # Menyesuaikan bobot terbesar agar totalnya menjadi 100%
-                                diff_efficient = 100 - total_rounded_efficient
-                                max_idx_efficient = efficient_weights_df['Weight Bulat (%)'].idxmax()
-                                efficient_weights_df.loc[max_idx_efficient, 'Weight Bulat (%)'] += diff_efficient
+                            # Hitung bobot bulat untuk portofolio efisien menggunakan fungsi round_weights_to_100
+                            original_weights_percent = efficient_weights_df['Weight Asli (%)'].values
+                            rounded_weights_efficient = round_weights_to_100(original_weights_percent)
+                            efficient_weights_df['Weight Bulat (%)'] = rounded_weights_efficient
 
                             # Hitung alokasi dana berdasarkan bobot bulat
                             efficient_weights_df['Amount (IDR)'] = (efficient_weights_df['Weight Bulat (%)'] / 100 * investment_amount).round(2)
@@ -656,6 +678,18 @@ elif page == "📊 Optimasi Portofolio":
                             # Verifikasi total bobot
                             st.write(f"**Total Bobot Portfolio Efisien: {efficient_weights_df['Weight Bulat (%)'].sum()}%**")
 
+                            # Menghitung portfolio returns harian untuk portofolio efisien
+                            efficient_portfolio_daily_returns = (returns_filtered * min_vol_weights).sum(axis=1)
+                            
+                            # Simpan portofolio efisien untuk analisis selanjutnya
+                            efficient_selected_weights = min_vol_weights
+                            efficient_selected_return = efficient_return
+                            efficient_selected_volatility = efficient_volatility
+                            efficient_selected_sharpe = efficient_sharpe
+                            efficient_selected_variance = efficient_variance
+
+                        # PEMBOBOTAN PORTOFOLIO OPTIMAL (SHARPE RATIO TERTINGGI)
+                        
                         # Otomatis Menggunakan Portofolio Optimal Untuk Analisis Selanjutnya 
                         selected_weights = optimal_weights
                         selected_return = optimal_return
@@ -675,13 +709,13 @@ elif page == "📊 Optimasi Portofolio":
 
                         col1, col2, col3, col4 = st.columns(4)
                         with col1:
-                            st.markdown(f'<div class="result-box">Expected Return Harian: <span class="positive">{selected_return*100:.4f}%</span></div>', unsafe_allow_html=True)
+                            st.markdown(f'<div class="result-box">Expected Return Harian: <span class="positive">{selected_return*100:.3f}%</span></div>', unsafe_allow_html=True)
                         with col2:
-                            st.markdown(f'<div class="result-box">Expected Volatility Harian: <span class="negative">{selected_volatility*100:.4f}%</span></div>', unsafe_allow_html=True)
+                            st.markdown(f'<div class="result-box">Expected Volatility Harian: <span class="negative">{selected_volatility*100:.3f}%</span></div>', unsafe_allow_html=True)
                         with col3:
-                            st.markdown(f'<div class="result-box">Sharpe Ratio Harian: <span class="positive">{selected_sharpe:.4f}</span></div>', unsafe_allow_html=True)
+                            st.markdown(f'<div class="result-box">Sharpe Ratio Harian: <span class="positive">{selected_sharpe*100:.3f}%</span></div>', unsafe_allow_html=True)
                         with col4:
-                            st.markdown(f'<div class="result-box">Variance Portofolio: <span class="negative">{selected_variance:.8f}</span></div>', unsafe_allow_html=True)
+                            st.markdown(f'<div class="result-box">Variance Portofolio: <span class="negative">{selected_variance*100:.3f}%</span></div>', unsafe_allow_html=True)
                         
                         # Menampilkan bobot terpilih dalam bentuk bilangan bulat
                         st.markdown(f'<div class="section-header">Proporsi Bobot Saham {portfolio_type}</div>', unsafe_allow_html=True)
@@ -697,16 +731,10 @@ elif page == "📊 Optimasi Portofolio":
 
                         weights_df = pd.DataFrame(weights_data)
 
-                        # Hitung bobot bulat
-                        weights_df['Weight Bulat (%)'] = np.round(weights_df['Weight Asli (%)'])
-
-                        # Normalisasi bobot bulat agar totalnya 100%
-                        total_rounded = weights_df['Weight Bulat (%)'].sum()
-                        if total_rounded != 100:
-                            # Menyesuaikan bobot terbesar agar totalnya menjadi 100%
-                            diff = 100 - total_rounded
-                            max_idx = weights_df['Weight Bulat (%)'].idxmax()
-                            weights_df.loc[max_idx, 'Weight Bulat (%)'] += diff
+                        # Hitung bobot bulat menggunakan fungsi round_weights_to_100
+                        original_weights_percent = weights_df['Weight Asli (%)'].values
+                        rounded_weights = round_weights_to_100(original_weights_percent)
+                        weights_df['Weight Bulat (%)'] = rounded_weights
 
                         # Hitung alokasi dana berdasarkan bobot bulat
                         weights_df['Amount (IDR)'] = (weights_df['Weight Bulat (%)'] / 100 * investment_amount).round(2)
@@ -720,7 +748,7 @@ elif page == "📊 Optimasi Portofolio":
                         
                         # Menghitung portfolio returns harian berdasarkan bobot yang dipilih.
                         portfolio_daily_returns = (returns_filtered * selected_weights).sum(axis=1)
-
+                        
                         # Kinerja portofolio dari waktu ke waktu 
                         st.markdown('<div class="section-header">Kinerja portofolio harian dari waktu ke waktu</div>', unsafe_allow_html=True)
 
